@@ -14,6 +14,7 @@ def build_index(db_path, roots):
         )
     """)
 
+
     for root in roots:
         for dirpath, _, filenames in os.walk(root):
             for fname in filenames:

@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- Prevent favicon 404 -->
+  <link rel="icon" href="data:,">
   <meta charset="utf-8" />
   <title>MDO Smart Document Finder</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -8,28 +10,64 @@
 </head>
 <body>
 
-  <!-- Top bar with company brand on the right -->
+  <!-- Top bar with brand on the right -->
   <div class="topbar">
     <div class="container topbar-inner">
-      <div class="topbar-left"><!-- optional left content --></div>
+      <div class="topbar-left"></div>
       <div class="topbar-right">
+        <!-- Put your logo at /frontend/assets/image.png -->
         <img src="assets/image.png" alt="Western Heat and Forge Pvt Ltd." class="brand-logo" />
         <span class="brand-name">Western Heat and Forge Pvt Ltd.</span>
       </div>
     </div>
   </div>
 
-  <!-- Centered hero header -->
+  <!-- Centered header -->
   <header class="container hero">
-    <h1>MDO Smart Document Finder</h1>
+    <div>
+      <h1>MDO Smart Document Finder</h1>
+      <p class="subtitle">Filename-only search with optional Year, Month, and Company filters.</p>
+    </div>
   </header>
 
+  <!-- Search card -->
   <section class="container card">
     <div class="filters">
       <div class="field">
         <label for="year">Year</label>
         <select id="year">
           <option value="">Any</option>
+          <option value="2020">2020</option>
+          <option value="2021">2021</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+          <option value="2027">2027</option>
+          <option value="2028">2028</option>
+          <option value="2029">2029</option>
+          <option value="2030">2030</option>
+          <option value="2031">2031</option>
+          <option value="2032">2032</option>
+          <option value="2033">2033</option>
+          <option value="2034">2034</option>
+          <option value="2035">2035</option>
+          <option value="2036">2036</option>
+          <option value="2037">2037</option>
+          <option value="2038">2038</option>
+          <option value="2039">2039</option>
+          <option value="2040">2040</option>
+          <option value="2041">2041</option>
+          <option value="2042">2042</option>
+          <option value="2043">2043</option>
+          <option value="2044">2044</option>
+          <option value="2045">2045</option>
+          <option value="2046">2046</option>
+          <option value="2047">2047</option>
+          <option value="2048">2048</option>
+          <option value="2049">2049</option>
+          <option value="2050">2050</option>
         </select>
       </div>
 
@@ -46,145 +84,86 @@
 
       <div class="field grow">
         <label for="company">Company (in filename)</label>
-        <input id="company" type="text" placeholder="e.g., Cameron, AVK, etc. " />
+        <input id="company" type="text" placeholder="e.g., Cameron, AVK, etc." />
       </div>
     </div>
 
     <div class="search-row">
-      <!-- Keep a single input with id="query" so app.js keeps working -->
-      <input
-        id="query"
-        class="search-input"
-        type="text"
-        placeholder='Enter document number (e.g., 264)'
-        autocomplete="off"
-      />
+      <!-- EXP prefix fixed + input -->
+      <div class="exp-input-wrap">
+        <span class="exp-prefix">EXP-</span>
+        <input
+          id="query"
+          class="search-input"
+          type="text"
+          inputmode="numeric"
+          placeholder="Enter number (e.g., 192)"
+          autocomplete="off"
+        />
+      </div>
       <button id="btnSearch" class="btn primary">Search</button>
       <button id="btnClear" class="btn">Clear</button>
+      <!-- Monthly data button -->
+      <button id="btnMonthly" class="btn" title="List all documents for selected Year + Month">Monthly Data</button>
     </div>
 
-    <div id="status" class="status"></div>
+    <div id="status" class="status" aria-live="polite"></div>
 
+    <!-- Single Results table (always 7 parent rows) -->
     <div class="table-wrap">
-      <table id="results" class="table hidden">
+      <table id="results" class="table">
         <thead>
           <tr>
-            <th>File name</th>
-            <th>Parent folder</th>
-            <th>Open</th>
-            <th>Preview</th>
-            <th>Copy</th>
+            <th>Folder</th>
+            <th>Status</th>
+            <th>Count</th>
+            <th>Action</th>
           </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="parentRows">
+          <!-- 7 rows rendered here in fixed order -->
+        </tbody>
       </table>
 
       <div id="empty" class="empty hidden">
         <div class="empty-icon">🔎</div>
-        <div class="empty-text">Document not found. Try fewer words or just the number (e.g., 264).</div>
-      </div>
-    </div>
-
-    <div class="pagination hidden" id="pager">
-      <div class="pager-left">
-        <button id="prev" class="btn" disabled>◀ Prev</button>
-        <span id="pageInfo">Page 1 of 1</span>
-        <button id="next" class="btn" disabled>Next ▶</button>
-      </div>
-      <div class="pager-right">
-        <label for="pageSize">Per page</label>
-        <select id="pageSize">
-          <option>25</option>
-          <option selected>50</option>
-          <option>100</option>
-        </select>
+        <div class="empty-text">Start by typing a document like <strong>EXP-192</strong> and click Search.</div>
       </div>
     </div>
   </section>
 
-  <!-- Lock "EXP-" prefix in the query input -->
-  <script>
-    (function () {
-      const PREFIX = "EXP-";
-      const input = document.getElementById("query");
-      const btnClear = document.getElementById("btnClear");
+  <!-- Monthly coverage (Available vs Missing) -->
+  <section id="monthlyCard" class="container card hidden" aria-live="polite">
+    <h2 style="margin-top:0;">Monthly Coverage</h2>
+    <div id="monthlyStatus" class="status"></div>
 
-      // Initialize with prefix if empty or if file preloads old value
-      function ensurePrefix() {
-        if (!input.value || !input.value.startsWith(PREFIX)) {
-          input.value = PREFIX;
-        }
-        placeCaretAtEnd();
-      }
+    <div class="table-wrap" id="monthlyWrap" style="margin-top:8px;">
+      <!-- Available table -->
+      <h3 style="margin: 10px 0 6px;">Available</h3>
+      <table id="availTable" class="table">
+        <thead>
+          <tr>
+            <th>Folder</th>
+            <th>Count</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="availBody">
+          <!-- Filled dynamically -->
+        </tbody>
+      </table>
 
-      function placeCaretAtEnd() {
-        // keep caret after the current text (usually right after prefix or user text)
-        const len = input.value.length;
-        requestAnimationFrame(() => {
-          input.setSelectionRange(len, len);
-        });
-      }
+      <!-- Missing list -->
+      <h3 style="margin: 16px 0 6px;">Missing</h3>
+      <div id="missingWrap" class="empty hidden">
+        <div class="empty-icon">🗂️</div>
+        <div class="empty-text">All folders have documents for this period.</div>
+      </div>
+      <div id="missingBadges" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+  </section>
 
-      // Prevent deleting or moving caret into the prefix
-      input.addEventListener("keydown", (e) => {
-        const start = input.selectionStart ?? 0;
-        const end = input.selectionEnd ?? 0;
-
-        // Block Backspace/Delete if it would edit inside the prefix
-        const atOrBeforePrefix = start <= PREFIX.length;
-        const selectionStartsInPrefix = start < PREFIX.length;
-        const selectionEndsInPrefix = end <= PREFIX.length;
-
-        // Backspace directly after prefix
-        if (e.key === "Backspace" && atOrBeforePrefix) {
-          e.preventDefault();
-          input.setSelectionRange(PREFIX.length, PREFIX.length);
-          return;
-        }
-
-        // Delete while caret/selection is inside prefix
-        if (e.key === "Delete" && (selectionStartsInPrefix || selectionEndsInPrefix)) {
-          e.preventDefault();
-          input.setSelectionRange(PREFIX.length, PREFIX.length);
-          return;
-        }
-
-        // ArrowLeft/Home: don't allow caret to go inside prefix
-        if ((e.key === "ArrowLeft" || e.key === "Home") && atOrBeforePrefix) {
-          e.preventDefault();
-          input.setSelectionRange(PREFIX.length, PREFIX.length);
-          return;
-        }
-      });
-
-      // On input, re-add prefix if the user pasted over it, etc.
-      input.addEventListener("input", () => {
-        if (!input.value.startsWith(PREFIX)) {
-          const user = input.value.replace(/^EXP-?/i, ""); // strip any variant
-          input.value = PREFIX + user;
-        }
-      });
-
-      // On focus, keep caret after prefix if user focuses at start
-      input.addEventListener("focus", () => {
-        if ((input.selectionStart ?? 0) < PREFIX.length) {
-          input.setSelectionRange(PREFIX.length, PREFIX.length);
-        }
-      });
-
-      // Clear button resets to just the prefix (so search acts like empty)
-      if (btnClear) {
-        btnClear.addEventListener("click", () => {
-          input.value = PREFIX;
-          placeCaretAtEnd();
-        });
-      }
-
-      // Set initial state
-      ensurePrefix();
-    })();
-  </script>
-
-  <script src="app.js?v=10"></script>
+  <!-- Only the external script; no inline monthly JS to avoid duplicate handlers -->
+  <script src="app.js?v=28"></script>
 </body>
 </html>

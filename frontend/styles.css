@@ -1,21 +1,24 @@
 :root{
   /* Core palette */
-  --bg:#0b1020;                 /* page background base */
-  --bg-2:#0e1630;               /* deeper backdrop */
-  --card:#111a33;               /* cards */
+  --bg:#0b1020;
+  --bg-2:#0e1630;
+  --card:#111a33;
   --border:#1e2a44;
 
   /* Text */
   --text:#e8eef7;
   --muted:#9fb3cc;
 
-  /* Accents (teal + violet) */
-  --accent:#22d3ee;             /* cyan-teal */
+  /* Accents */
+  --accent:#22d3ee;
   --accent-strong:#06b6d4;
-  --accent-2:#8b5cf6;           /* violet secondary */
+  --accent-2:#8b5cf6;
+  --success:#10b981;   /* green */
+  --danger:#ef4444;    /* red */
+
   --glow: 0 6px 24px rgba(34,211,238,.18);
 
-  /* Tables / rows */
+  /* Rows */
   --row:#0b1530;
   --row-alt:#0d1a3c;
   --row-hover:#12224a;
@@ -35,7 +38,6 @@ body{
   margin:0;
   font-family: ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
   color: var(--text);
-  /* Rich layered background */
   background:
     radial-gradient(1200px 600px at 15% -10%, rgba(34,211,238,.10), transparent 40%),
     radial-gradient(900px 500px at 120% -20%, rgba(139,92,246,.10), transparent 45%),
@@ -61,7 +63,7 @@ body{
   display:flex; align-items:center; gap:12px;
 }
 
-/* Logo gets a cyan/violet ring */
+/* Circular logo with gradient ring */
 .brand-logo{
   width:50px; height:50px; aspect-ratio:1/1;
   object-fit:cover;
@@ -77,8 +79,6 @@ body{
   box-shadow: 0 2px 10px rgba(0,0,0,.35);
   margin-right: 10px;
 }
-
-/* Brand text with subtle accent gradient */
 .brand-name{
   font-weight:800;
   letter-spacing:.3px;
@@ -91,24 +91,22 @@ body{
   text-shadow: 0 0 18px rgba(34,211,238,.08);
 }
 
-/* --------------- Centered hero header --------------- */
+/* --------------- Centered hero --------------- */
 header.hero {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
+  display:flex; align-items:center; justify-content:center; text-align:center;
   min-height: 120px;
 }
-header.hero h1 {
+header.hero h1{
   font-size: clamp(34px, 5vw, 56px);
   font-weight: 800;
-  margin: 0;
+  margin: 0 0 6px;
   line-height: 1.08;
   background: linear-gradient(90deg, #eaf6ff, #b9f0ff 35%, #cdb7ff 70%, #ffffff);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
+.subtitle{ margin:0; color:var(--muted); }
 
 /* --------------- Card & controls --------------- */
 .card{
@@ -123,20 +121,11 @@ header.hero h1 {
   box-shadow: 0 10px 28px rgba(0,0,0,.28);
 }
 
-.filters{
-  display:grid;
-  grid-template-columns:180px 220px 1fr;
-  gap:12px;
-}
-.field label{
-  display:block; font-size:12px; color:var(--muted); margin-bottom:6px;
-}
+.filters{ display:grid; grid-template-columns:180px 220px 1fr; gap:12px; }
+.field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
 
-/* Inputs / selects get better contrast + glow on focus */
-.field input,
-.field select{
-  width:100%;
-  padding:10px 12px;
+.field input, .field select{
+  width:100%; padding:10px 12px;
   background: linear-gradient(180deg, #0c1530, #0a1430);
   color:var(--text);
   border:1px solid #203258;
@@ -144,41 +133,15 @@ header.hero h1 {
   outline:none;
   transition: box-shadow .15s ease, border-color .15s ease, transform .05s ease;
 }
-.field input:hover,
-.field select:hover{
-  border-color:#2a457a;
-}
-.field input:focus,
-.field select:focus{
-  border-color: var(--accent-strong);
-  box-shadow: var(--focus);
-}
-
-/* ▼ NEW: style the open dropdown list (option menu) */
-.field select option,
-.field select optgroup {
-  background-color: var(--row);   /* dark menu background */
-  color: var(--text);             /* option text color */
-}
-
-.field select option:checked {
-  background-color: var(--row-hover);  /* selected row bg */
-  color: var(--text);
-}
-
-/* Some browsers support :hover on options; harmless if ignored */
-.field select option:hover {
-  background-color: var(--row-hover);
-  color: var(--text);
-}
-/* ▲ END: dropdown list styling */
-
+.field input:hover, .field select:hover{ border-color:#2a457a; }
+.field input:focus, .field select:focus{ border-color: var(--accent-strong); box-shadow: var(--focus); }
+.field select option{ background-color: var(--row); color: var(--text); }
+.field select option:checked{ background-color: var(--row-hover); }
 .field.grow{ grid-column: span 1; }
 
 .search-row{ display:flex; gap:10px; margin-top:14px; }
 .search-input{
-  flex:1;
-  padding:12px 14px;
+  flex:1; padding:12px 14px;
   background: linear-gradient(180deg,#0c1736,#0c1530);
   color:var(--text);
   border:1px solid #203258;
@@ -186,46 +149,75 @@ header.hero h1 {
   outline:none;
   transition: box-shadow .15s ease, border-color .15s ease;
 }
-.search-input:focus{
-  border-color: var(--accent-strong);
-  box-shadow: var(--focus);
+.search-input:focus{ border-color: var(--accent-strong); box-shadow: var(--focus); }
+
+/* EXP- prefix combo input — original class names */
+.exp-prefix-wrap{
+  display:flex; align-items:center;
+  background: linear-gradient(180deg,#0c1736,#0c1530);
+  border:1px solid #203258;
+  border-radius:12px;
+  overflow:hidden;
+  flex:1;
+}
+.exp-prefix{
+  padding:0 10px;
+  font-weight:700;
+  color:#a7f3fc;
+  background:rgba(34,211,238,.08);
+  border-right:1px solid #203258;
+}
+.exp-input{
+  border:none; outline:none; flex:1; padding:12px 14px;
+  background:transparent; color:var(--text);
+}
+.exp-input:focus{ box-shadow:none; }
+
+/* EXP- prefix combo input — class names used in index.html (exp-input-wrap + search-input) */
+.exp-input-wrap{
+  display:flex; align-items:center;
+  background: linear-gradient(180deg,#0c1736,#0c1530);
+  border:1px solid #203258;
+  border-radius:12px;
+  overflow:hidden;
+  flex:1;
+}
+.exp-input-wrap .exp-prefix{
+  padding:0 10px;
+  font-weight:700;
+  color:#a7f3fc;
+  background:rgba(34,211,238,.08);
+  border-right:1px solid #203258;
+}
+.exp-input-wrap .search-input{
+  border:none; outline:none; flex:1; padding:12px 14px;
+  background:transparent; color:var(--text);
+  box-shadow:none;
 }
 
-/* Buttons: primary with dual-accent gradient, soft glow */
+/* Buttons */
 .btn{
-  padding:11px 14px; border-radius:12px;
-  border:1px solid #203258;
-  background: var(--btn);
-  color:var(--text);
-  cursor:pointer;
+  padding:11px 14px; border-radius:12px; border:1px solid #203258;
+  background: var(--btn); color:var(--text); cursor:pointer;
   transition: transform .05s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
 }
 .btn:hover{ background:var(--btn-hover); }
 .btn:active{ transform: translateY(1px); }
 .btn:disabled{ opacity:.55; cursor:not-allowed; }
-
 .btn.primary{
   background: linear-gradient(90deg, var(--accent) 0%, var(--accent-strong) 45%, var(--accent-2) 100%);
-  color:#04121a; border:none; font-weight:800;
-  box-shadow: var(--glow);
-}
-.btn.primary:hover{
-  filter: brightness(1.05);
-  box-shadow: 0 8px 26px rgba(139,92,246,.25), var(--glow);
+  color:#04121a; border:none; font-weight:800; box-shadow: var(--glow);
 }
 
 /* Status text */
 .status{ margin-top:12px; color:var(--muted); min-height:20px; }
 
-/* Table */
+/* --------------- Table --------------- */
 .table-wrap{ margin-top:10px; overflow:auto; }
 .table{
-  width:100%;
-  border-collapse:separate;
-  border-spacing:0;
+  width:100%; border-collapse:separate; border-spacing:0;
   border:1px solid var(--border);
-  border-radius:14px;
-  overflow:hidden;
+  border-radius:14px; overflow:hidden;
   box-shadow: 0 8px 22px rgba(0,0,0,.22);
 }
 .table thead th{
@@ -233,24 +225,49 @@ header.hero h1 {
   background: linear-gradient(180deg,#0f1c3e,#0c1733);
   padding:12px; border-bottom:1px solid var(--border);
 }
+.table tbody td{ padding:12px; border-bottom:1px solid var(--border); }
+.table a{ color: var(--accent); text-decoration:none; }
+.table a:hover{ color:#5ee6ff; text-decoration:underline; }
+
+/* Default zebra — will be overridden by row state below */
 .table tbody tr:nth-child(odd) td{ background: var(--row); }
 .table tbody tr:nth-child(even) td{ background: var(--row-alt); }
-.table tbody td{
-  padding:12px; border-bottom:1px solid var(--border);
+.table tbody tr:hover td{ background: var(--row-hover); }
+
+/* Parent row states — full pale highlight across the whole row */
+.table tbody tr.row-green td{
+  background: rgba(16,185,129,.12) !important;   /* pale green */
+  border-left: 4px solid var(--success);
 }
-.table tbody tr:hover td{
-  background: var(--row-hover);
-}
-.table a{
-  color: var(--accent);
-  text-decoration:none;
-}
-.table a:hover{
-  color:#5ee6ff;
-  text-decoration:underline;
+.table tbody tr.row-red td{
+  background: rgba(239,68,68,.12) !important;    /* pale red */
+  border-left: 4px solid var(--danger);
 }
 
-/* Empty state */
+/* Status badge */
+.status-pill{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 10px; border-radius:999px; font-weight:700; font-size:12px;
+}
+.status-ok{ background: rgba(16,185,129,.15); color:#a7f3d0; border:1px solid rgba(16,185,129,.35); }
+.status-miss{ background: rgba(239,68,68,.12); color:#fecaca; border:1px solid rgba(239,68,68,.35); }
+
+/* Count badge */
+.count-badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:28px; padding:2px 8px; border-radius:999px;
+  background: rgba(34,211,238,.15); color:#a5f3fc; font-weight:700; border:1px solid rgba(34,211,238,.35);
+}
+
+/* Expansion (child table) */
+.expand-row td{ background:#0c1838; padding:0; }
+.expand-wrap{ padding:10px 12px 14px 16px; }
+.child-table{ width:100%; border-collapse:collapse; }
+.child-table thead th{ text-align:left; font-size:13px; color:#cfe2ff; padding:8px 6px; border-bottom:1px solid var(--border); }
+.child-table tbody td{ padding:8px 6px; border-bottom:1px solid var(--border); }
+.child-table tbody tr:hover td{ background:#10224a; }
+
+/* Empty */
 .empty{
   display:flex; align-items:center; gap:10px; padding:14px; color:#cbd5e1;
   border:1px dashed var(--border); border-radius:12px;
@@ -259,19 +276,21 @@ header.hero h1 {
 .empty-icon{ font-size:20px; }
 .hidden{ display:none; }
 
-/* Pagination */
-.pagination{
-  margin-top:12px; display:flex; align-items:center; justify-content:space-between;
-}
-.pager-left{ display:flex; align-items:center; gap:10px; }
-.pager-right{ display:flex; align-items:center; gap:10px; }
+.footer{ padding:24px 0 40px; color:var(--muted); text-align:center; font-size:12px; }
 
-/* Footer */
-.footer{
-  padding:24px 0 40px;
-  color:var(--muted);
-  text-align:center;
-  font-size:12px;
+/* --------------- Monthly coverage extras (NEW) --------------- */
+#monthlyCard h2{
+  margin: 0 0 8px;
+  font-size: clamp(22px, 3vw, 28px);
+}
+#monthlyCard h3{
+  margin: 14px 0 8px;
+  color:#d7e7ff;
+}
+#missingBadges{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
 }
 
 /* --------------- Responsive --------------- */
@@ -280,3 +299,17 @@ header.hero h1 {
   .search-row{ flex-direction: column; }
   .brand-name{ font-size:18px; }
 }
+
+/* ✅ (Legacy) EXP search field hook if used anywhere */
+.exp-field input {
+  width: 100%;
+  padding: 10px 12px;
+  background: linear-gradient(90deg, #0c1530, #0a1430);
+  color: var(--text);
+  border: 1px solid #203258;
+  border-radius: 12px;
+  outline: none;
+  transition: box-shadow .15s ease, border-color .15s ease, transform .05s ease;
+}
+.exp-field input:hover { border-color: #2a457a; }
+.exp-field input:focus { border-color: var(--accent-strong); box-shadow: var(--focus); }
