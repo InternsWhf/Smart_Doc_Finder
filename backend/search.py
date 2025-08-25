@@ -2,6 +2,7 @@
 # backend/search.py
 # ---------------------------
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -23,6 +24,25 @@ def _norm_month(month: Optional[str]) -> Optional[str]:
     if m in ("any", ""):
         return None
     return m if m in _FULL_MONTHS else None
+
+
+# ---------- EXP CODE HELPERS (robust) ----------
+
+_EXP_RX = re.compile(r"^\s*(?:exp[-\s]*)?(\d+)\s*$", re.IGNORECASE)
+
+def _norm_exp_code(s: str) -> Optional[str]:
+    """
+    Accepts inputs like: '192', 'EXP-192', 'exp192', 'Exp 192' and
+    normalizes them to canonical 'EXP-<digits>' (uppercased).
+    Returns None if it can't parse a number.
+    """
+    if not s:
+        return None
+    m = _EXP_RX.match(str(s))
+    if not m:
+        return None
+    return f"EXP-{m.group(1)}".upper()
+
 
 # ---------- MONTH HELPERS (text 'contains' only) ----------
 
@@ -56,6 +76,7 @@ def _month_ok_for_folder(full_path: str, month: Optional[str], year: Optional[st
     if not month:
         return True
     return _dir_contains_month(list(Path(full_path).parts), month)
+
 
 # ---------- FILTER CHECKS ----------
 
@@ -500,4 +521,96 @@ def monthly_coverage(
         "period": {"year": str(year) if year else "", "month": m or ""},
         "available": available,
         "missing": missing,
+    }
+
+
+# ---------- MULTI-EXP MISSING REPORT (NEW) ----------
+
+def multi_exp_missing(
+    parents_order: List[str],
+    roots: List[str],
+    exp_codes: List[str],
+    year: Optional[str] = None,
+    month: Optional[str] = None,
+    company: Optional[str] = None,
+    limit: int = 30,
+) -> Dict:
+    """
+    For up to `limit` EXPs, compute which of the fixed parent folders are missing.
+
+    Input:
+      - exp_codes: list like ['EXP-123','124','exp 125', ...] (we normalize)
+      - parents_order: the canonical order of parent folders (e.g., ["CIPL","DOCK AUDIT REPORT",...,"POD"])
+      - roots/year/month/company: same filter semantics as other functions
+
+    Output:
+      {
+        "parents_order": [...],
+        "count": N,                 # number of EXPs processed
+        "limit": 30,
+        "items": [
+          { "exp": "EXP-123", "missing": ["CIPL","DOCK AUDIT REPORT"], "found": ["MTC PACKAGE", ...] },
+          ...
+        ],
+        "summary": {
+          "missing_counts": { "CIPL": 2, "POD": 0, ... }  # across all EXPs
+        },
+        "invalid": ["EXP-xyz"]      # inputs that could not be parsed
+      }
+    """
+    m = _norm_month(month)
+
+    # Normalize and de-duplicate while preserving order
+    normalized: List[str] = []
+    invalid: List[str] = []
+    seen = set()
+    for raw in exp_codes or []:
+        norm = _norm_exp_code(raw)
+        if not norm:
+            invalid.append(str(raw))
+            continue
+        if norm in seen:
+            continue
+        seen.add(norm)
+        normalized.append(norm)
+
+    # Enforce limit
+    if len(normalized) > (limit or 30):
+        normalized = normalized[: (limit or 30)]
+
+    results: List[Dict] = []
+    missing_counts = {p: 0 for p in parents_order}
+
+    for exp in normalized:
+        # Reuse coverage_rows logic for a single EXP
+        rows = coverage_rows(
+            parents_order=parents_order,
+            roots=roots,
+            query=exp,
+            year=year,
+            month=m,
+            company=company,
+            max_items_per_parent=1,  # we only care about found/missing flags
+        ).get("rows", [])
+
+        missing = [r["parent"] for r in rows if not r.get("found", False)]
+        found   = [r["parent"] for r in rows if r.get("found", False)]
+
+        # Tally summary
+        for p in missing:
+            missing_counts[p] = missing_counts.get(p, 0) + 1
+
+        results.append({
+            "exp": exp,
+            "missing": missing,
+            "found": found,
+        })
+
+    return {
+        "parents_order": list(parents_order),
+        "count": len(results),
+        "limit": limit or 30,
+        "items": results,
+        "summary": {"missing_counts": missing_counts},
+        "invalid": invalid,
     }

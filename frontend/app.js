@@ -12,6 +12,9 @@ const els = {
   parentRows: document.getElementById('parentRows'),
   empty: document.getElementById('empty'),
 
+  // NEW: optional status filter (All / Found / Missing)
+  statusFilter: document.getElementById('statusFilter'),
+
   // Monthly coverage UI (must exist in index.html for monthly feature)
   btnMonthly: document.getElementById('btnMonthly'),
   monthlyCard: document.getElementById('monthlyCard'),
@@ -20,6 +23,14 @@ const els = {
   availBody: document.getElementById('availBody'),
   missingWrap: document.getElementById('missingWrap'),
   missingBadges: document.getElementById('missingBadges'),
+
+  // (legacy multi fields kept for compatibility but not used by the new batch block)
+  multiQuery:   document.getElementById('multiQuery'),
+  btnMultiSave: document.getElementById('btnMultiSave'),
+  multiCount:   document.getElementById('multiCount'),
+  btnMultiView: document.getElementById('btnMultiView'),
+  btnMultiDocx: document.getElementById('btnMultiDocx'),
+  multiResults: document.getElementById('multiResults'),
 };
 
 const PARENTS = [
@@ -53,9 +64,191 @@ function init(){
   if (els.btnMonthly) els.btnMonthly.addEventListener('click', onMonthlyClick);
   if (els.availTable) els.availTable.addEventListener('click', onAvailTableClick);
 
+  // NEW: live filter toggle on already-rendered rows
+  if (els.statusFilter){
+    els.statusFilter.addEventListener('change', applyStatusFilterToRendered);
+  }
+
   // Initial empty state
   showEmpty(true);
 }
+
+/* -------------------- Multi-EXP Missing Report (BATCH) -------------------- */
+/* Uses the new IDs present in index.html: batchExpInput, btnAddExp,
+   btnViewMissing, btnExportDocx, btnClearExp, batchCounter, expChipList,
+   batchStatus, batchBody, batchEmpty. */
+(() => {
+  const MULTI_LIMIT = 30;
+  const STORAGE_KEY = 'multiExp:list';
+
+  // Hook new HTML IDs (as in index.html)
+  const inpExp        = document.getElementById('batchExpInput');
+  const btnAddExp     = document.getElementById('btnAddExp');
+  const btnView       = document.getElementById('btnViewMissing');
+  const btnExport     = document.getElementById('btnExportDocx');
+  const btnClear      = document.getElementById('btnClearExp'); // ✅ NEW
+  const counterEl     = document.getElementById('batchCounter');
+  const chipsWrap     = document.getElementById('expChipList');
+  const statusEl      = document.getElementById('batchStatus');
+  const bodyEl        = document.getElementById('batchBody');
+  const emptyEl       = document.getElementById('batchEmpty');
+
+  // Also use existing filter fields
+  const yearEl   = document.getElementById('year');
+  const monthEl  = document.getElementById('month');
+  const compEl   = document.getElementById('company');
+
+  // no-op if the section isn't in the page
+  if (!inpExp || !btnAddExp || !btnView || !btnExport) return;
+
+  let list = load();
+  render();
+
+  btnAddExp.addEventListener('click', (e)=>{ e.preventDefault(); onAdd(); });
+  btnView.addEventListener('click', (e)=>{ e.preventDefault(); onView(); });
+  btnExport.addEventListener('click', (e)=>{ e.preventDefault(); onExport(); });
+  if (btnClear) btnClear.addEventListener('click', (e)=>{ e.preventDefault(); onClear(); }); // ✅ NEW
+  chipsWrap.addEventListener('click', onChipClick);
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
+  }
+
+  function render() {
+    counterEl.textContent = `${list.length} / ${MULTI_LIMIT} saved`;
+    chipsWrap.innerHTML = list.map(exp => `
+      <span class="chip" data-exp="${escapeHtml(exp)}">
+        <span class="chip-text">${escapeHtml(exp)}</span>
+        <button class="chip-remove" title="Remove" aria-label="Remove" type="button">×</button>
+      </span>
+    `).join('');
+  }
+
+  function normalize(expRaw) {
+    const s = String(expRaw || '').trim();
+    if (!s) return null;
+    const m = s.match(/^\s*(?:exp[-\s]*)?(\d+)\s*$/i);
+    return m ? `EXP-${m[1]}` : null;
+  }
+
+  function onAdd() {
+    const exp = normalize(inpExp.value);
+    if (!exp) { alert('Enter a valid EXP number, e.g., 383'); return; }
+    if (list.includes(exp)) { render(); return; }
+    if (list.length >= MULTI_LIMIT) { alert(`Limit reached (${MULTI_LIMIT}).`); return; }
+    list.push(exp);
+    save();
+    render();
+    inpExp.value = '';
+    inpExp.focus();
+  }
+
+  function onChipClick(e) {
+    const btn = e.target.closest('.chip-remove');
+    if (!btn) return;
+    const chip = btn.closest('.chip');
+    const exp = chip?.getAttribute('data-exp');
+    if (!exp) return;
+    list = list.filter(x => x !== exp);
+    save();
+    render();
+  }
+
+  async function onView() {
+    statusEl.textContent = 'Loading…';
+    bodyEl.innerHTML = '';
+    emptyEl.classList.remove('hidden');
+
+    if (list.length === 0) { statusEl.textContent = 'No EXPs saved.'; return; }
+
+    const params = new URLSearchParams({ exps: list.join(',') });
+    if (yearEl.value)  params.set('year', yearEl.value);
+    if (monthEl.value) params.set('month', monthEl.value);
+    const company = (compEl.value || '').trim();
+    if (company) params.set('company', company);
+
+    try {
+      const res = await fetch(`${API_BASE}/multi-missing?` + params.toString());
+      if (!res.ok) {
+        const txt = await res.text().catch(()=> '');
+        throw new Error(`multi-missing ${res.status}: ${txt}`);
+      }
+      const data = await res.json();
+      const results = data.results || data.items || [];
+      renderResults(results);
+      statusEl.textContent = '';
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = 'Error fetching summary.';
+    }
+  }
+
+  function renderResults(results) {
+    bodyEl.innerHTML = '';
+    if (!results.length) {
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+    results.forEach(r => {
+      const tr = document.createElement('tr');
+      const miss = (r.missing || []).join(', ') || '—';
+      tr.innerHTML = `<td style="width:180px;"><strong>${escapeHtml(r.exp || '')}</strong></td>
+                      <td>${escapeHtml(miss)}</td>`;
+      bodyEl.appendChild(tr);
+    });
+  }
+
+  async function onExport() {
+    if (list.length === 0) { alert('No EXPs saved.'); return; }
+    const body = {
+      exps: list,
+      year: yearEl.value || null,
+      month: monthEl.value || null,
+      company: (compEl.value || '').trim() || null
+    };
+    try {
+      const res = await fetch(`${API_BASE}/multi-missing-docx`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('export failed: ' + res.status);
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url;
+      a.download = 'Missing_Folders_Report.docx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Export failed.');
+    }
+  }
+
+  // ✅ NEW: Clear all saved EXPs + reset results
+  function onClear() {
+    if (!confirm('Clear all saved EXPs?')) return;
+    list = [];
+    save();
+    render();
+    statusEl.textContent = 'Cleared all EXPs.';
+    bodyEl.innerHTML = '';
+    emptyEl.classList.remove('hidden');
+  }
+
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+})();
+/* ---------------------------------------------------------------------- */
 
 function clearFilters(){
   els.year.value = "";
@@ -65,6 +258,9 @@ function clearFilters(){
   els.status.textContent = "";
   els.parentRows.innerHTML = "";
   showEmpty(true);
+
+  // NEW: reset status filter to All (empty value in the <select>)
+  if (els.statusFilter) els.statusFilter.value = "";
 
   // Clear monthly section (if present)
   if (els.monthlyCard) {
@@ -105,10 +301,13 @@ async function search(){
     if(!res.ok) throw new Error(`Server responded ${res.status}`);
     const data = await res.json();
 
-    renderParentRows(data.rows || []);
+    renderParentRows((data && data.rows) || []);
     const t1 = performance.now();
     els.status.textContent = `Checked ${PARENTS.length} folders in ${Math.max(1, Math.round(t1 - t0))} ms`;
     showEmpty(false);
+
+    // Ensure filter is applied (in case user set it before search)
+    applyStatusFilterToRendered();
   }catch(err){
     console.error(err);
     els.status.textContent = "Error contacting server. Please try again.";
@@ -116,9 +315,36 @@ async function search(){
   }
 }
 
+/* ----------------------- Status filter helpers (NEW) ----------------------- */
+function getStatusFilter(){
+  // Returns "all" when the <select> value is empty (All)
+  return (els.statusFilter && els.statusFilter.value) ? els.statusFilter.value : "all";
+}
+function shouldHideByFilter(found){
+  const f = getStatusFilter();
+  if (f === "found")   return !found;   // hide non-found
+  if (f === "missing") return  found;   // hide found
+  return false;                          // "all"
+}
+function applyStatusFilterToRendered(){
+  const mode = getStatusFilter();
+  const rows = els.parentRows.querySelectorAll('tr');
+  rows.forEach(tr => {
+    if (tr.classList.contains('expand-row')) return;
+    const isFound = tr.classList.contains('row-green');
+    const hide = (mode === 'all') ? false : shouldHideByFilter(isFound);
+    tr.classList.toggle('row-hidden', hide);
+
+    const next = tr.nextElementSibling;
+    if (next && next.classList.contains('expand-row')){
+      next.classList.toggle('row-hidden', hide);
+    }
+  });
+}
+/* -------------------------------------------------------------------------- */
+
 /* Render fixed 7 parent rows; each row can expand to show child items */
 function renderParentRows(rows){
-  // Map incoming rows by parent; ensure fixed display order
   const byParent = {};
   rows.forEach(r => { byParent[(r.parent || "").toUpperCase()] = r; });
 
@@ -126,22 +352,19 @@ function renderParentRows(rows){
   PARENTS.forEach(parent => {
     const r = byParent[parent] || { parent, present:false, found:false, count:0, items:[] };
 
-    // Pale green/red full-row highlight
     const tr = document.createElement('tr');
     tr.classList.add(r.found ? 'row-green' : 'row-red');
     tr.dataset.parent = r.parent;
 
-    // Explicit status text
     const statusPill = r.found
       ? `<span class="status-pill status-ok">Found</span>`
       : `<span class="status-pill status-miss">Missing</span>`;
 
     const countBadge = `<span class="count-badge">${r.found ? (r.count || 0) : 0}</span>`;
 
-    // Actions: only enable View files if row is green
     const btn = r.found
-      ? `<button class="btn btn-view" data-parent="${escapeHtmlAttr(r.parent)}" data-loaded="0" aria-expanded="false">View files</button>`
-      : `<button class="btn" disabled>View files</button>`;
+      ? `<button class="btn btn-view" type="button" data-parent="${escapeHtmlAttr(r.parent)}" data-loaded="0" aria-expanded="false">View files</button>`
+      : `<button class="btn" type="button" disabled>View files</button>`;
 
     tr.innerHTML = `
       <td><strong>${escapeHtml(r.parent)}</strong></td>
@@ -149,9 +372,10 @@ function renderParentRows(rows){
       <td>${countBadge}</td>
       <td>${btn}</td>
     `;
+    if (shouldHideByFilter(r.found)) tr.classList.add('row-hidden');
+
     els.parentRows.appendChild(tr);
 
-    // Expansion placeholder (hidden)
     const expand = document.createElement('tr');
     expand.className = "expand-row hidden";
     expand.dataset.parent = r.parent;
@@ -173,9 +397,10 @@ function renderParentRows(rows){
         </div>
       </td>
     `;
+    if (shouldHideByFilter(r.found)) expand.classList.add('row-hidden');
+
     els.parentRows.appendChild(expand);
 
-    // Cache preloaded items (from backend) to avoid extra call
     if(r.found && Array.isArray(r.items) && r.items.length){
       const btnEl = tr.querySelector('.btn-view');
       btnEl.dataset.preloaded = "1";
@@ -188,6 +413,7 @@ function renderParentRows(rows){
 async function onParentTableClick(e){
   const viewBtn = e.target.closest('.btn-view');
   if(viewBtn){
+    e.preventDefault();
     const parent = viewBtn.getAttribute('data-parent');
     const expanded = viewBtn.getAttribute('aria-expanded') === 'true';
     const expandRow = findExpandRow(parent);
@@ -200,7 +426,6 @@ async function onParentTableClick(e){
       return;
     }
 
-    // expand
     try{
       let items = [];
       if(viewBtn.dataset.preloaded === "1" && viewBtn._preloadedItems){
@@ -220,9 +445,9 @@ async function onParentTableClick(e){
     }
   }
 
-  // Child-table action: copy path
   const copyBtn = e.target.closest('.act-copy');
   if(copyBtn){
+    e.preventDefault();
     const path = copyBtn.getAttribute('data-path');
     try{
       await navigator.clipboard.writeText(path);
@@ -255,7 +480,7 @@ async function fetchCoverageFiles(parent){
   return data.items || [];
 }
 
-/* === FIXED: Preview is enabled for BOTH files and folders === */
+/* === Preview is enabled for BOTH files and folders === */
 function renderChildItems(expandRow, items){
   const tbody = expandRow.querySelector('tbody');
   tbody.innerHTML = "";
@@ -274,12 +499,10 @@ function renderChildItems(expandRow, items){
     const safeName = escapeHtml(row.file_name || "");
     const folder = escapeHtml(row.parent_folder || "");
 
-    // OPEN (same tab): files -> /preview, folders -> /browse-ui
     const openCell = isFile
       ? `<a class="btn" href="${API_BASE}/preview?path=${encodeURIComponent(fullPath)}">Open</a>`
       : `<a class="btn" href="${API_BASE}/browse-ui?path=${encodeURIComponent(fullPath)}">Open folder</a>`;
 
-    // PREVIEW: files -> /preview in new tab, folders -> /browse-ui (deep view) in new tab
     const previewCell = isFile
       ? `<a href="${API_BASE}/preview?path=${encodeURIComponent(fullPath)}" target="_blank" rel="noopener">Preview</a>`
       : `<a href="${API_BASE}/browse-ui?path=${encodeURIComponent(fullPath)}&deep=1" target="_blank" rel="noopener">Preview</a>`;
@@ -290,7 +513,7 @@ function renderChildItems(expandRow, items){
       <td>${folder}</td>
       <td>${openCell}</td>
       <td>${previewCell}</td>
-      <td><button class="btn act-copy" data-path="${escapeHtmlAttr(fullPath)}">Copy</button></td>
+      <td><button class="btn act-copy" type="button" data-path="${escapeHtmlAttr(fullPath)}">Copy</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -300,11 +523,10 @@ function renderChildItems(expandRow, items){
    MONTHLY COVERAGE (NEW)
    =========================== */
 
-// DISPLAY-ONLY normalization (PDO -> POD for labels)
 const prettyParent = (s) => (String(s).toUpperCase() === "PDO" ? "POD" : s);
 
 async function onMonthlyClick(){
-  if (!els.monthlyCard) return; // safety if markup not present
+  if (!els.monthlyCard) return;
 
   const year  = (els.year.value || "").trim();
   const month = (els.month.value || "").trim();
@@ -313,7 +535,6 @@ async function onMonthlyClick(){
   if (!year || !month){
     els.monthlyCard.classList.remove('hidden');
     els.monthlyStatus.textContent = 'Please select both Year and Month for monthly coverage.';
-    // clear tables
     if (els.availBody) els.availBody.innerHTML = '';
     if (els.missingBadges) els.missingBadges.innerHTML = '';
     if (els.missingWrap) els.missingWrap.classList.add('hidden');
@@ -338,7 +559,6 @@ async function onMonthlyClick(){
     renderAvailableMonthly(data.available || []);
     renderMissingMonthly(data.missing || []);
 
-    // Scroll into view
     try { els.monthlyCard.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_){}
   }catch(err){
     console.error(err);
@@ -371,7 +591,7 @@ function renderAvailableMonthly(available){
     tr.innerHTML = `
       <td><strong>${escapeHtml(prettyParent(parent))}</strong></td>
       <td><span class="count-badge">${count}</span></td>
-      <td><button class="btn btn-view-month" data-parent="${escapeHtmlAttr(parent)}" aria-expanded="false">View files</button></td>
+      <td><button class="btn btn-view-month" type="button" data-parent="${escapeHtmlAttr(parent)}" aria-expanded="false">View files</button></td>
     `;
     els.availBody.appendChild(tr);
 
@@ -398,7 +618,6 @@ function renderAvailableMonthly(available){
     `;
     els.availBody.appendChild(ex);
 
-    // cache items on the button node
     const btn = tr.querySelector('.btn-view-month');
     btn._items = Array.isArray(group.items) ? group.items : [];
   });
@@ -413,7 +632,6 @@ function renderMissingMonthly(missing){
     return;
   }
 
-  // (kept as-is per your current logic)
   els.missingWrap.classList.add('hidden'); // hide "all good" box
   els.missingBadges.innerHTML = missing
     .map(name => `<span class="status-pill status-miss">${escapeHtml(prettyParent(name))}</span>`)
@@ -423,11 +641,11 @@ function renderMissingMonthly(missing){
 function onAvailTableClick(e){
   const viewBtn = e.target.closest('.btn-view-month');
   if (viewBtn){
+    e.preventDefault();
     const parent = viewBtn.getAttribute('data-parent');
     let exRow = [...els.availBody.querySelectorAll('.expand-row')]
       .find(r => r.dataset.parent === parent);
 
-    // Fallback: use the row that immediately follows the button's row
     if (!exRow) {
       const row = viewBtn.closest('tr');
       if (row && row.nextElementSibling && row.nextElementSibling.classList.contains('expand-row')) {
@@ -455,6 +673,7 @@ function onAvailTableClick(e){
 
   const copyBtn = e.target.closest('.act-copy');
   if (copyBtn){
+    e.preventDefault();
     const path = copyBtn.getAttribute('data-path') || '';
     navigator.clipboard.writeText(path).then(()=>{
       copyBtn.textContent = 'Copied!';
@@ -494,7 +713,7 @@ function renderChildItemsMonthly(tbody, items){
       <td>${folder}</td>
       <td>${openCell}</td>
       <td>${previewCell}</td>
-      <td><button class="btn act-copy" data-path="${escapeHtmlAttr(fullPath)}">Copy</button></td>
+      <td><button class="btn act-copy" type="button" data-path="${escapeHtmlAttr(fullPath)}">Copy</button></td>
     `;
     tbody.appendChild(tr);
   });

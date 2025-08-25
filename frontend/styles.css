@@ -47,6 +47,7 @@ body{
 .container{ width:min(1100px,94%); margin:0 auto; }
 
 /* ---------------- Topbar (brand on the right) ---------------- */
+
 .topbar{
   background: linear-gradient(180deg, rgba(20,28,52,.75), rgba(16,24,43,.65));
   border-bottom: 1px solid var(--border);
@@ -151,6 +152,22 @@ header.hero h1{
 }
 .search-input:focus{ border-color: var(--accent-strong); box-shadow: var(--focus); }
 
+/* NEW: status filter select (sits in .search-row) */
+.filter-select{
+  min-width:140px;
+  padding:10px 12px;
+  background: linear-gradient(180deg, #0c1530, #0a1430);
+  color:var(--text);
+  border:1px solid #203258;
+  border-radius:12px;
+  outline:none;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.filter-select:hover{ border-color:#2a457a; }
+.filter-select:focus{ border-color: var(--accent-strong); box-shadow: var(--focus); }
+.filter-select option{ background-color: var(--row); color: var(--text); }
+.filter-select option:checked{ background-color: var(--row-hover); }
+
 /* EXP- prefix combo input — original class names */
 .exp-prefix-wrap{
   display:flex; align-items:center;
@@ -244,6 +261,9 @@ header.hero h1{
   border-left: 4px solid var(--danger);
 }
 
+/* Utility: hide a row when filtering */
+.row-hidden{ display:none !important; }
+
 /* Status badge */
 .status-pill{
   display:inline-flex; align-items:center; gap:6px;
@@ -293,11 +313,52 @@ header.hero h1{
   gap:8px;
 }
 
+/* --------------- Batch (Multi-EXP Missing) --------------- */
+#batchCard h2{
+  margin: 0 0 8px;
+  font-size: clamp(22px, 3vw, 28px);
+}
+#expChipList{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  background: rgba(34,211,238,.12);
+  border:1px solid rgba(34,211,238,.35);
+  color:#a5f3fc;
+  font-weight:700;
+  line-height:1;
+}
+.chip .chip-text{
+  letter-spacing:.2px;
+}
+.chip .chip-remove{
+  appearance:none;
+  border:none;
+  background:transparent;
+  color:#95c5ff;
+  font-weight:900;
+  cursor:pointer;
+  padding:0 4px;
+  line-height:1;
+}
+.chip .chip-remove:hover{
+  color:#fff;
+  text-shadow:0 0 6px rgba(149,197,255,.7);
+}
+
 /* --------------- Responsive --------------- */
 @media (max-width: 720px){
   .filters{ grid-template-columns:1fr; }
   .search-row{ flex-direction: column; }
   .brand-name{ font-size:18px; }
+  .filter-select{ width:100%; }
 }
 
 /* ✅ (Legacy) EXP search field hook if used anywhere */

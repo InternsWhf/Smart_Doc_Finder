@@ -4,7 +4,7 @@
   <!-- Prevent favicon 404 -->
   <link rel="icon" href="data:,">
   <meta charset="utf-8" />
-  <title>MDO Smart Document Finder</title>
+  <title>Smart Document Finder</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -25,7 +25,7 @@
   <!-- Centered header -->
   <header class="container hero">
     <div>
-      <h1>MDO Smart Document Finder</h1>
+      <h1>Smart Document Finder</h1>
       <p class="subtitle">Filename-only search with optional Year, Month, and Company filters.</p>
     </div>
   </header>
@@ -105,6 +105,13 @@
       <button id="btnClear" class="btn">Clear</button>
       <!-- Monthly data button -->
       <button id="btnMonthly" class="btn" title="List all documents for selected Year + Month">Monthly Data</button>
+
+      <!-- Status filter -->
+      <select id="statusFilter" class="filter-select" aria-label="Status filter" title="Filter by status">
+        <option value="">All</option>
+        <option value="found">Found</option>
+        <option value="missing">Missing</option>
+      </select>
     </div>
 
     <div id="status" class="status" aria-live="polite"></div>
@@ -148,9 +155,7 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody id="availBody">
-          <!-- Filled dynamically -->
-        </tbody>
+        <tbody id="availBody"></tbody>
       </table>
 
       <!-- Missing list -->
@@ -163,7 +168,62 @@
     </div>
   </section>
 
-  <!-- Only the external script; no inline monthly JS to avoid duplicate handlers -->
-  <script src="app.js?v=28"></script>
+  <!-- Multi-EXP Missing Report -->
+  <section id="batchCard" class="container card" aria-live="polite">
+    <h2 style="margin-top:0;">Multi-EXP Missing Report</h2>
+    <p class="subtitle" style="margin-top:4px;">
+      Add up to 30 EXP numbers, then use your current Year / Month / Company filters to summarise missing folders.
+    </p>
+
+    <div class="search-row" style="gap:10px; align-items:center;">
+      <div class="exp-input-wrap" style="max-width:320px;">
+        <span class="exp-prefix">EXP-</span>
+        <input
+          id="batchExpInput"
+          class="search-input"
+          type="text"
+          inputmode="numeric"
+          placeholder="e.g., 123"
+          autocomplete="off"
+        />
+      </div>
+
+      <button id="btnAddExp" class="btn">Save</button>
+      <span id="batchCounter" class="status" style="margin:0;">0 / 30 saved</span>
+
+      <div style="flex:1;"></div>
+
+      <button id="btnViewMissing" class="btn">View Missing</button>
+      <button id="btnExportDocx" class="btn">Export .DOCX</button>
+      <!-- ✅ NEW: Clear all saved EXPs -->
+      <button id="btnClearExp" class="btn" title="Clear all saved EXP numbers">Clear</button>
+    </div>
+
+    <!-- Saved EXP chips -->
+    <div id="expChipList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+
+    <div id="batchStatus" class="status" aria-live="polite"></div>
+
+    <!-- Results -->
+    <div class="table-wrap" style="margin-top:8px;">
+      <table id="batchResults" class="table">
+        <thead>
+          <tr>
+            <th style="width:180px;">EXP</th>
+            <th>Missing Folders</th>
+          </tr>
+        </thead>
+        <tbody id="batchBody"></tbody>
+      </table>
+
+      <div id="batchEmpty" class="empty">
+        <div class="empty-icon">📄</div>
+        <div class="empty-text">Add EXP numbers and click <strong>View Missing</strong> to see a summary here.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Only the external script -->
+  <script src="app.js?v=32"></script>
 </body>
 </html>
