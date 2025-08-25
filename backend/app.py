@@ -475,7 +475,6 @@ def browse_ui(path: str = Query(..., description="Absolute path under one of ALL
     allowed_roots_encoded = urllib.parse.quote("|".join(ALLOWED_ROOTS))
     initial_path_encoded = urllib.parse.quote(str(p))
 
-    # (HTML omitted here for brevity in this comment — it is identical to your latest working version)
     html = r"""<!doctype html>
 <html lang="en">
 <head>
@@ -489,22 +488,37 @@ def browse_ui(path: str = Query(..., description="Absolute path under one of ALL
       --success:#10b981; --danger:#ef4444;
     }
     *{box-sizing:border-box} html,body{height:100%}
-    body{ margin:0; background:linear-gradient(180deg,var(--bg),var(--bg-2)); color:var(--text);
-      font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial; }
+    body{
+      margin:0; background:linear-gradient(180deg,var(--bg),var(--bg-2)); color:var(--text);
+      font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+    }
     .wrap{display:grid; grid-template-columns:0 1fr; height:100vh; transition:grid-template-columns .2s ease}
     .wrap.sidebar-open{grid-template-columns:320px 1fr}
     .sidebar{border-right:1px solid var(--border); background:rgba(15,23,42,.5); padding:12px; overflow:auto}
     .main{display:flex; flex-direction:column; min-width:0}
-    .topbar{ display:flex; align-items:center; justify-content:space-between;
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
       padding:12px 16px; border-bottom:1px solid var(--border);
-      background:linear-gradient(180deg,rgba(20,28,52,.75),rgba(16,24,43,.65)); position:sticky; top:0; z-index:20; }
-    .crumbs a{color:#cfe2ff; text-decoration:none} .crumbs a:hover{text-decoration:underline}
+      background:linear-gradient(180deg,rgba(20,28,52,.75),rgba(16,24,43,.65));
+      position:sticky; top:0; z-index:20;
+    }
+    .crumbs a{color:#cfe2ff; text-decoration:none}
+    .crumbs a:hover{text-decoration:underline}
     .controls{display:flex; gap:10px; align-items:center}
-    .input,.checkbox{background:linear-gradient(180deg,#0c1736,#0c1530); border:1px solid #203258; color:var(--text); border-radius:10px; padding:8px 10px}
+    .input,.checkbox{
+      background:linear-gradient(180deg,#0c1736,#0c1530); border:1px solid #203258; color:var(--text);
+      border-radius:10px; padding:8px 10px
+    }
     .btn{padding:8px 10px; border-radius:10px; border:1px solid #203258; background:#0f1f3d; color:var(--text); cursor:pointer}
     .btn:hover{background:#162a52}
     .iconbtn{width:36px; height:36px; display:inline-grid; place-items:center; border-radius:10px; border:1px solid #203258; background:rgba(255,255,255,.06); cursor:pointer}
     .iconbtn:hover{background:rgba(255,255,255,.10)}
+    .iconlink{
+      width:36px; height:36px; display:inline-grid; place-items:center; border-radius:10px;
+      border:1px solid #203258; background:#0f1f3d; margin-left:6px; text-decoration:none
+    }
+    .iconlink:hover{background:#162a52}
+    .iconlink svg{width:18px; height:18px}
     .tree ul{list-style:none; margin:0; padding-left:16px} .tree li{margin:3px 0}
     .node{display:flex; align-items:center; gap:6px; cursor:pointer}
     .twisty{width:12px; height:12px; display:inline-block; border-left:6px solid #8fb3ff; border-top:6px solid transparent; border-bottom:6px solid transparent}
@@ -515,12 +529,15 @@ def browse_ui(path: str = Query(..., description="Absolute path under one of ALL
     tbody td{padding:10px; border-bottom:1px solid var(--border)}
     tbody tr:nth-child(odd) td{background:#0b1530} tbody tr:nth-child(even) td{background:#0d1a3c}
     tbody tr:hover td{background:#12224a}
-    .muted{color:#9fb3cc} .empty{color:#cbd5e1; padding:14px; border:1px dashed var(--border); border-radius:12px; background:linear-gradient(180deg,#0e1a38,#0c1633)}
+    .muted{color:#9fb3cc}
+    .nowrap{white-space:nowrap}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <aside class="sidebar"><div class="tree" id="tree"></div></aside>
+    <aside class="sidebar">
+      <div class="tree" id="tree"></div>
+    </aside>
     <main class="main">
       <div class="topbar">
         <div class="crumbs" id="crumbs">Loading…</div>
@@ -532,7 +549,7 @@ def browse_ui(path: str = Query(..., description="Absolute path under one of ALL
             </svg>
           </button>
           <input class="input" id="search" placeholder="Search in this folder…" />
-          <label class="grid-row">
+          <label style="display:flex;align-items:center;gap:8px;">
             <input type="checkbox" id="deep" class="checkbox" />
             <span class="muted">Include subfolders</span>
           </label>
@@ -540,8 +557,18 @@ def browse_ui(path: str = Query(..., description="Absolute path under one of ALL
       </div>
       <div class="content">
         <table>
-          <thead><tr><th>Name</th><th class="nowrap">Type</th><th class="nowrap">Size</th><th class="nowrap">Modified</th><th class="nowrap">Open</th></tr></thead>
-          <tbody id="rows"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th class="nowrap">Type</th>
+              <th class="nowrap">Size</th>
+              <th class="nowrap">Modified</th>
+              <th class="nowrap">Open</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr><td colspan="5" class="muted">Loading…</td></tr>
+          </tbody>
         </table>
         <div id="moreWrap" style="padding:10px 0;display:none;">
           <button class="btn" id="btnMore">Load more</button>
@@ -550,8 +577,259 @@ def browse_ui(path: str = Query(..., description="Absolute path under one of ALL
       </div>
     </main>
   </div>
+
   <script>
-  /* (JS identical to your last good version — omitted in this snippet for brevity) */
+  const API_ROOTS = decodeURIComponent("__ALLOWED_ROOTS__").split("|").filter(Boolean);
+  const INITIAL_PATH = decodeURIComponent("__INITIAL_PATH__");
+
+  const $ = sel => document.querySelector(sel);
+  const rowsEl = $("#rows");
+  const treeEl = $("#tree");
+  const crumbsEl = $("#crumbs");
+  const searchEl = $("#search");
+  const deepEl = $("#deep");
+  const moreWrap = $("#moreWrap");
+  const btnMore = $("#btnMore");
+  const moreInfo = $("#moreInfo");
+  const btnSidebar = $("#btnSidebar");
+  const wrapEl = document.querySelector(".wrap");
+
+  let state = { currentPath: INITIAL_PATH, q: "", deep: false, nextOffset: 0, loading: false };
+
+  // sidebar toggle (persisted)
+  function setSidebar(open){
+    if(open){
+      wrapEl.classList.add("sidebar-open");
+      btnSidebar.title = "Close sidebar";
+      btnSidebar.setAttribute("aria-label","Close sidebar");
+    } else {
+      wrapEl.classList.remove("sidebar-open");
+      btnSidebar.title = "Open sidebar";
+      btnSidebar.setAttribute("aria-label","Open sidebar");
+    }
+    try{ localStorage.setItem("sidebarOpen", open ? "1":"0"); }catch(e){}
+  }
+  btnSidebar.addEventListener("click", () => {
+    const open = !wrapEl.classList.contains("sidebar-open");
+    setSidebar(open);
+  });
+  let savedOpen = null;
+  try{ savedOpen = localStorage.getItem("sidebarOpen"); }catch(e){}
+  setSidebar(savedOpen === "1");
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+  function cssEscape(s){ return s.replace(/["\\]/g, "\\$&"); }
+
+  function nodeTemplate(name, fullPath, expanded=false, hasTwisty=false) {
+    return `
+      <div class="node ${expanded ? "expanded" : ""}" data-path="${escapeHtml(fullPath)}">
+        ${hasTwisty ? '<span class="twisty"></span>' : '<span style="display:inline-block;width:12px;"></span>'}
+        <span class="name"><a href="#" style="color:#cfe2ff;text-decoration:none;">${escapeHtml(name)}</a></span>
+      </div>
+      <ul class="kids" style="display:${expanded ? 'block' : 'none'}"></ul>
+    `;
+  }
+
+  function renderTreeRoots() {
+    treeEl.innerHTML = "";
+    API_ROOTS.forEach(root => {
+      const wrap = document.createElement("div");
+      wrap.className = "tree-root";
+      const label = root.split(/[\\\\\\/]/).pop() || root;
+      wrap.innerHTML = nodeTemplate(label, root, false, true);
+      treeEl.appendChild(wrap);
+    });
+    expandToPath(state.currentPath);
+  }
+
+  async function expand(nodeEl) {
+    const kids = nodeEl.nextElementSibling;
+    if (kids.getAttribute("data-loaded") === "1") {
+      const open = kids.style.display !== "none";
+      kids.style.display = open ? "none" : "block";
+      nodeEl.classList.toggle("expanded", !open);
+      return;
+    }
+    const path = nodeEl.getAttribute("data-path");
+    try {
+      const res = await fetch(`/browse-children?` + new URLSearchParams({ path }));
+      if (!res.ok) throw new Error("children " + res.status);
+      const data = await res.json();
+      kids.innerHTML = "";
+      (data.items || []).forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML = nodeTemplate(item.name, item.full_path, false, item.has_children);
+        kids.appendChild(li);
+      });
+      kids.setAttribute("data-loaded", "1");
+      kids.style.display = "block";
+      nodeEl.classList.add("expanded");
+    } catch(e) { alert("Could not load subfolders."); }
+  }
+
+  function normalizeSlashes(p){ return String(p || "").replace(/[/\\\\]+/g, "\\"); }
+
+  async function expandToPath(targetPath) {
+    const roots = [...treeEl.querySelectorAll(".tree-root > .node")];
+    let rootNode = roots.find(n => normalizeSlashes(targetPath).toLowerCase().startsWith(
+      normalizeSlashes(n.getAttribute("data-path")).toLowerCase()
+    ));
+    if (!rootNode) rootNode = roots[0];
+    await expand(rootNode);
+
+    const base = normalizeSlashes(rootNode.getAttribute("data-path"));
+    const segs = normalizeSlashes(targetPath).substring(base.length).replace(/^\\/, "").split(/\\+/).filter(Boolean);
+    let cur = rootNode;
+    let curPath = base;
+    for (const seg of segs) {
+      curPath += (curPath.endsWith("\\") ? "" : "\\") + seg;
+      const kids = cur.nextElementSibling;
+      let nextNode = [...kids.querySelectorAll(".node")].find(n => normalizeSlashes(n.getAttribute("data-path")).toLowerCase() === curPath.toLowerCase());
+      if (!nextNode) {
+        await expand(cur);
+        nextNode = [...kids.querySelectorAll(".node")].find(n => normalizeSlashes(n.getAttribute("data-path")).toLowerCase() === curPath.toLowerCase());
+      }
+      if (!nextNode) break;
+      await expand(nextNode);
+      cur = nextNode;
+    }
+    // highlight active
+    [...treeEl.querySelectorAll(".node .name a")].forEach(a => a.style.color = "#cfe2ff");
+    const active = [...treeEl.querySelectorAll(".node")].find(n => normalizeSlashes(n.getAttribute("data-path")).toLowerCase() === normalizeSlashes(targetPath).toLowerCase());
+    if (active) active.querySelector(".name a").style.color = "#a5f3fc";
+  }
+
+  async function loadList(reset=true) {
+    if (state.loading) return;
+    state.loading = true;
+    if (reset) { rowsEl.innerHTML = `<tr><td colspan="5" class="muted">Loading…</td></tr>`; state.nextOffset = 0; }
+
+    try {
+      const params = new URLSearchParams({
+        path: state.currentPath,
+        include_subfolders: String(state.deep),
+        offset: String(state.nextOffset || 0),
+        limit: "1000",
+      });
+      if (state.q) params.set("q", state.q);
+
+      const res = await fetch(`/browse-list?` + params.toString());
+      if (!res.ok) throw new Error("list " + res.status);
+      const data = await res.json();
+      const items = data.items || [];
+      if (reset) rowsEl.innerHTML = "";
+      if (!items.length && (state.nextOffset || 0) === 0) {
+        rowsEl.innerHTML = `<tr><td colspan="5"><div class="muted">Empty folder</div></td></tr>`;
+      } else {
+        items.forEach(addRow);
+      }
+
+      state.nextOffset = data.has_more ? (data.next_offset || 0) : null;
+      moreWrap.style.display = data.has_more ? "block" : "none";
+      moreInfo.textContent = data.has_more ? "Showing first 1000 items…" : "";
+    } catch(e) {
+      rowsEl.innerHTML = `<tr><td colspan="5" class="muted">Error loading.</td></tr>`;
+    } finally { state.loading = false; }
+  }
+
+  function addRow(it) {
+    const isFolder = it.kind === "folder";
+    const type = isFolder ? "Folder" : (it.name.split(".").pop().toUpperCase());
+    const openHref = isFolder
+      ? `/browse-ui?path=${encodeURIComponent(it.full_path)}`
+      : `/preview?path=${encodeURIComponent(it.full_path)}`;
+
+    const openCell = `
+      <a class="btn" href="${openHref}">Open</a>
+      <a class="iconlink" href="${openHref}" target="_blank" rel="noopener"
+         title="Open in new tab" aria-label="Open in new tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#cfe2ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 3h7v7"></path>
+          <path d="M21 3 10 14"></path>
+          <path d="M21 14v7H3V3h7"></path>
+        </svg>
+      </a>`;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(it.name || "")}</td>
+      <td class="nowrap">${type || "—"}</td>
+      <td class="nowrap">${it.size || "—"}</td>
+      <td class="nowrap">${it.modified || "—"}</td>
+      <td class="nowrap">${openCell}</td>
+    `;
+    rowsEl.appendChild(tr);
+  }
+
+  // Robust breadcrumbs (handles UNC shares and local drives)
+  function renderCrumbs(path) {
+    try {
+      const isUNC = path.startsWith("\\\\");
+      const normalized = String(path).replace(/[/\\\\]+/g, "\\").replace(/\\+$/,"");
+      const parts = normalized.split("\\").filter(Boolean);
+
+      let html = "";
+      let built = "";
+
+      if (isUNC) {
+        if (parts.length >= 2) {
+          built = `\\\\${parts[0]}\\${parts[1]}`;
+          html += `<a href="/browse-ui?path=${encodeURIComponent(built)}">${escapeHtml(built)}</a>`;
+          for (let i = 2; i < parts.length; i++) {
+            built += `\\${parts[i]}`;
+            html += " / " + `<a href="/browse-ui?path=${encodeURIComponent(built)}">${escapeHtml(parts[i])}</a>`;
+          }
+        } else {
+          html = escapeHtml(normalized || "\\\\");
+        }
+      } else {
+        built = parts.shift() || "";
+        html += `<a href="/browse-ui?path=${encodeURIComponent(built)}">${escapeHtml(built)}</a>`;
+        for (const seg of parts) {
+          built += `\\${seg}`;
+          html += " / " + `<a href="/browse-ui?path=${encodeURIComponent(built)}">${escapeHtml(seg)}</a>`;
+        }
+      }
+      crumbsEl.innerHTML = html || escapeHtml(path);
+    } catch(e) {
+      crumbsEl.textContent = path;
+    }
+  }
+
+  treeEl.addEventListener("click", async (e) => {
+    const node = e.target.closest(".node");
+    if (!node) return;
+
+    if (e.target.classList.contains("twisty")) { await expand(node); return; }
+    if (e.target.closest("a")) {
+      e.preventDefault();
+      state.currentPath = node.getAttribute("data-path");
+      renderCrumbs(state.currentPath);
+      searchEl.value = ""; state.q = ""; deepEl.checked = false; state.deep = false;
+      await loadList(true);
+    }
+  });
+
+  searchEl.addEventListener("input", () => { state.q = searchEl.value.trim(); loadList(true); });
+  deepEl.addEventListener("change", () => { state.deep = deepEl.checked; loadList(true); });
+  btnMore.addEventListener("click", () => { if (state.nextOffset != null) loadList(false); });
+
+  // Initialize
+  renderTreeRoots();
+  renderCrumbs(state.currentPath);
+
+  // Respect ?deep=1 and optional ?q= on initial load
+  try {
+    const urlParams = new URLSearchParams(location.search);
+    const deepParam = urlParams.get("deep");
+    if (deepParam === "1" || deepParam === "true") {
+      deepEl.checked = true; state.deep = true;
+    }
+    const qParam = urlParams.get("q");
+    if (qParam) { searchEl.value = qParam; state.q = qParam; }
+  } catch(_) {}
+
+  loadList(true);
   </script>
 </body>
 </html>
