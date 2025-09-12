@@ -1,31 +1,34 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- Prevent favicon 404 -->
   <link rel="icon" href="data:,">
   <meta charset="utf-8" />
   <title>Smart Document Finder</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body class="theme-dark"><!-- default dark; JS will switch if user saved light -->
 
   <!-- Top bar with brand on the right -->
   <div class="topbar">
     <div class="container topbar-inner">
       <div class="topbar-left"></div>
       <div class="topbar-right">
-        <!-- Put your logo at /frontend/assets/image.png -->
         <img src="assets/image.png" alt="Western Heat and Forge Pvt Ltd." class="brand-logo" />
         <span class="brand-name">Western Heat and Forge Pvt Ltd.</span>
       </div>
     </div>
   </div>
 
+  <!-- ✅ Floating theme toggle (top-right of the content area) -->
+  <button id="themeToggle" class="theme-switch" title="Toggle light / dark" aria-label="Toggle theme">
+    <span class="ts-knob"></span>
+  </button>
+
   <!-- Centered header -->
   <header class="container hero">
     <div>
-      <h1>Smart Document Finder</h1>
+      <h1>SMART DOCUMENT FINDER</h1>
       <p class="subtitle">Filename-only search with optional Year, Month, and Company filters.</p>
     </div>
   </header>
@@ -89,7 +92,6 @@
     </div>
 
     <div class="search-row">
-      <!-- EXP prefix fixed + input -->
       <div class="exp-input-wrap">
         <span class="exp-prefix">EXP-</span>
         <input
@@ -103,10 +105,8 @@
       </div>
       <button id="btnSearch" class="btn primary">Search</button>
       <button id="btnClear" class="btn">Clear</button>
-      <!-- Monthly data button -->
       <button id="btnMonthly" class="btn" title="List all documents for selected Year + Month">Monthly Data</button>
 
-      <!-- Status filter -->
       <select id="statusFilter" class="filter-select" aria-label="Status filter" title="Filter by status">
         <option value="">All</option>
         <option value="found">Found</option>
@@ -116,7 +116,6 @@
 
     <div id="status" class="status" aria-live="polite"></div>
 
-    <!-- Single Results table (always 7 parent rows) -->
     <div class="table-wrap">
       <table id="results" class="table">
         <thead>
@@ -127,9 +126,7 @@
             <th>Action</th>
           </tr>
         </thead>
-        <tbody id="parentRows">
-          <!-- 7 rows rendered here in fixed order -->
-        </tbody>
+        <tbody id="parentRows"></tbody>
       </table>
 
       <div id="empty" class="empty hidden">
@@ -139,13 +136,12 @@
     </div>
   </section>
 
-  <!-- Monthly coverage (Available vs Missing) -->
+  <!-- Monthly coverage -->
   <section id="monthlyCard" class="container card hidden" aria-live="polite">
     <h2 style="margin-top:0;">Monthly Coverage</h2>
     <div id="monthlyStatus" class="status"></div>
 
     <div class="table-wrap" id="monthlyWrap" style="margin-top:8px;">
-      <!-- Available table -->
       <h3 style="margin: 10px 0 6px;">Available</h3>
       <table id="availTable" class="table">
         <thead>
@@ -158,7 +154,6 @@
         <tbody id="availBody"></tbody>
       </table>
 
-      <!-- Missing list -->
       <h3 style="margin: 16px 0 6px;">Missing</h3>
       <div id="missingWrap" class="empty hidden">
         <div class="empty-icon">🗂️</div>
@@ -178,14 +173,7 @@
     <div class="search-row" style="gap:10px; align-items:center;">
       <div class="exp-input-wrap" style="max-width:320px;">
         <span class="exp-prefix">EXP-</span>
-        <input
-          id="batchExpInput"
-          class="search-input"
-          type="text"
-          inputmode="numeric"
-          placeholder="e.g., 123"
-          autocomplete="off"
-        />
+        <input id="batchExpInput" class="search-input" type="text" inputmode="numeric" placeholder="e.g., 123" autocomplete="off" />
       </div>
 
       <button id="btnAddExp" class="btn">Save</button>
@@ -195,16 +183,12 @@
 
       <button id="btnViewMissing" class="btn">View Missing</button>
       <button id="btnExportDocx" class="btn">Export .DOCX</button>
-      <!-- ✅ NEW: Clear all saved EXPs -->
       <button id="btnClearExp" class="btn" title="Clear all saved EXP numbers">Clear</button>
     </div>
 
-    <!-- Saved EXP chips -->
     <div id="expChipList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
-
     <div id="batchStatus" class="status" aria-live="polite"></div>
 
-    <!-- Results -->
     <div class="table-wrap" style="margin-top:8px;">
       <table id="batchResults" class="table">
         <thead>
@@ -223,7 +207,6 @@
     </div>
   </section>
 
-  <!-- Only the external script -->
   <script src="app.js?v=32"></script>
 </body>
 </html>

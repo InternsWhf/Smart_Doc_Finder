@@ -629,7 +629,7 @@ def browse_ui(path: str = Query(..., description="Absolute path under one of ALL
       <ul class="kids" style="display:${expanded ? 'block' : 'none'}"></ul>
     `;
   }
-
+  
   function renderTreeRoots() {
     treeEl.innerHTML = "";
     API_ROOTS.forEach(root => {

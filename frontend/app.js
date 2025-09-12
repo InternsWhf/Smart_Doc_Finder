@@ -6,6 +6,7 @@ const els = {
   month: document.getElementById('month'),
   company: document.getElementById('company'),
   query: document.getElementById('query'),        // numeric part only (UI shows fixed EXP-)
+
   btnSearch: document.getElementById('btnSearch'),
   btnClear: document.getElementById('btnClear'),
   status: document.getElementById('status'),
@@ -31,6 +32,9 @@ const els = {
   btnMultiView: document.getElementById('btnMultiView'),
   btnMultiDocx: document.getElementById('btnMultiDocx'),
   multiResults: document.getElementById('multiResults'),
+
+  // ✅ Theme toggle button (floating pill in top-right)
+  themeToggle: document.getElementById('themeToggle'),
 };
 
 const PARENTS = [
@@ -51,14 +55,16 @@ function init(){
     const opt = document.createElement('option');
     opt.value = String(y);
     opt.textContent = String(y);
-    els.year.appendChild(opt);
+    if (!els.year.querySelector(`option[value="${y}"]`)) {
+      els.year.appendChild(opt);
+    }
   }
 
-  els.btnSearch.addEventListener('click', search);
-  els.btnClear.addEventListener('click', clearFilters);
+  if (els.btnSearch) els.btnSearch.addEventListener('click', search);
+  if (els.btnClear)  els.btnClear.addEventListener('click', clearFilters);
 
   // Table-level click handlers (event delegation)
-  els.parentRows.addEventListener('click', onParentTableClick);
+  if (els.parentRows) els.parentRows.addEventListener('click', onParentTableClick);
 
   // Monthly: button + available table delegation (only if elements exist)
   if (els.btnMonthly) els.btnMonthly.addEventListener('click', onMonthlyClick);
@@ -69,9 +75,35 @@ function init(){
     els.statusFilter.addEventListener('change', applyStatusFilterToRendered);
   }
 
+  // ✅ Theme: initialize and wire toggle
+  initTheme();
+  if (els.themeToggle) {
+    els.themeToggle.addEventListener('click', () => {
+      const isLight = document.body.classList.contains('theme-light');
+      setTheme(isLight ? 'dark' : 'light');
+    });
+  }
+
   // Initial empty state
   showEmpty(true);
 }
+
+/* -------------------- Theme helpers -------------------- */
+function initTheme(){
+  let saved = 'dark';
+  try { saved = localStorage.getItem('theme') || 'dark'; } catch {}
+  setTheme(saved);
+}
+function setTheme(mode){
+  const isLight = (mode === 'light');
+  document.body.classList.toggle('theme-light', isLight);
+  try { localStorage.setItem('theme', isLight ? 'light' : 'dark'); } catch {}
+  if (els.themeToggle) {
+    els.themeToggle.setAttribute('aria-pressed', String(isLight));
+    els.themeToggle.title = isLight ? 'Switch to Night' : 'Switch to Day';
+  }
+}
+/* ------------------------------------------------------ */
 
 /* -------------------- Multi-EXP Missing Report (BATCH) -------------------- */
 /* Uses the new IDs present in index.html: batchExpInput, btnAddExp,
